@@ -13,4 +13,5 @@ account.json
 db/account.json
 db/players/
 db/completion_log.txt
+.wos.env
 .DS_Store
