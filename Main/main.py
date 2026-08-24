@@ -16,7 +16,9 @@ from cmd_program.screen_action import (
     tap_screen,
     swipe_screen,
     long_press,
-    take_screenshot
+    take_screenshot,
+    ensure_game_running,
+    is_game_running,
 )
 
 from core.core import (
@@ -96,19 +98,6 @@ console = Console()
 
 
 
-def start_game(game_name="com.gof.global/com.unity3d.player.MyMainPlayerActivity"):
-    wos_adb_command = [
-        "adb", 
-        "shell", 
-        "am", 
-        "start", 
-        "-n", 
-        game_name
-    ]
-    subprocess.run(wos_adb_command)
-
-
-
 def load_completion_log():
     records = {}
 
@@ -165,6 +154,11 @@ def mark_player_completed(player_id, records):
 def init_database():
     global player_data, email_list, player_list
     path = "db/account.json"
+    if not os.path.exists(path):
+        raise FileNotFoundError(
+            "db/account.json not found. Copy db/account.json.example to "
+            "db/account.json and fill in your account/player info first."
+        )
     with open(path) as f:
         player_data = json.load(f)
     
@@ -307,10 +301,6 @@ def player_initialization():
     
 
 
-start_game()
-init_database()
-
-
 def get_next_email(current_email):
     if not email_list:
         return None
@@ -338,59 +328,92 @@ def run_task(current_player_id, selected_tasks):
 
 def run_bot(selected_tasks):
     completion_records = load_completion_log()
+    cycle = 0
 
     while True:
-        player_initialization()
+        cycle += 1
+        try:
+            # make sure the game survived (crash / manual exit) before each cycle
+            if not ensure_game_running():
+                print("Game is not running and could not be started, retrying in 60s...")
+                time.sleep(60)
+                continue
 
-        #----Config----
-        current_email = current_player.email
-        next_email = get_next_email(current_email)
-
-        #----- Run all characters under current email -----
-        current_email_players = get_players_by_email(current_email)
-        if not current_email_players:
-            raise RuntimeError(f"No players configured for email: {current_email}")
-
-        processed_ids = set()
-
-        while len(processed_ids) < len(current_email_players):
-            active_id = current_player.id.lower()
-            if active_id not in processed_ids:
-                if should_skip_player(current_player.id, completion_records):
-                    last_ts = completion_records.get(active_id)
-                    last_time = datetime.fromtimestamp(last_ts).strftime("%Y-%m-%d %H:%M:%S")
-                    print(f"Skipping {current_player.name} ({current_player.id}) - completed recently at {last_time}")
-                else:
-                    print(f"Running tasks for: {current_player.name} ({current_player.id})")
-                    run_task(current_player.id, selected_tasks)
-                    mark_player_completed(current_player.id, completion_records)
-                    print(f"Marked completed: {current_player.id} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                processed_ids.add(active_id)
-
-            next_player = next(
-                (p for p in current_email_players if p["id"].lower() not in processed_ids),
-                None,
-            )
-
-            if not next_player:
-                break
-
-            print(f"Switching to sibling character: {next_player['name']}")
-            change_character(next_player["name"])
             player_initialization()
 
-            if current_player.email != current_email:
-                raise RuntimeError(
-                    f"Unexpected email after character switch. Expected {current_email}, got {current_player.email}"
+            #----Config----
+            current_email = current_player.email
+            next_email = get_next_email(current_email)
+
+            #----- Run all characters under current email -----
+            current_email_players = get_players_by_email(current_email)
+            if not current_email_players:
+                raise RuntimeError(f"No players configured for email: {current_email}")
+
+            processed_ids = set()
+
+            while len(processed_ids) < len(current_email_players):
+                active_id = current_player.id.lower()
+                if active_id not in processed_ids:
+                    if should_skip_player(current_player.id, completion_records):
+                        last_ts = completion_records.get(active_id)
+                        last_time = datetime.fromtimestamp(last_ts).strftime("%Y-%m-%d %H:%M:%S")
+                        print(f"Skipping {current_player.name} ({current_player.id}) - completed recently at {last_time}")
+                    else:
+                        print(f"Running tasks for: {current_player.name} ({current_player.id})")
+                        try:
+                            run_task(current_player.id, selected_tasks)
+                            mark_player_completed(current_player.id, completion_records)
+                            print(f"Marked completed: {current_player.id} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        except Exception as e:
+                            print(f"Tasks for {current_player.id} failed: {e!r}, continuing...")
+                    processed_ids.add(active_id)
+
+                next_player = next(
+                    (p for p in current_email_players if p["id"].lower() not in processed_ids),
+                    None,
                 )
 
-        print(f"Progressing to the next email: {next_email}")
-        status = change_account(next_email)
-        if not status:
-            raise RuntimeError("Account changing error")
+                if not next_player:
+                    break
+
+                print(f"Switching to sibling character: {next_player['name']}")
+                change_character(next_player["name"])
+                player_initialization()
+
+                if current_player.email != current_email:
+                    raise RuntimeError(
+                        f"Unexpected email after character switch. Expected {current_email}, got {current_player.email}"
+                    )
+
+            print(f"Progressing to the next email: {next_email}")
+            status = change_account(next_email)
+            if not status:
+                raise RuntimeError("Account changing error")
+
+        except KeyboardInterrupt:
+            print("Stopped by user.")
+            return
+        except Exception as e:
+            # One broken cycle (player recognition failure, unknown screen,
+            # account switch error...) no longer kills the bot: log, give
+            # the game a restart chance, back off and retry.
+            print(f"Bot cycle #{cycle} failed: {e!r} - restarting game and retrying in 90s...")
+            try:
+                if not is_game_running():
+                    ensure_game_running()
+            except Exception as restart_err:
+                print(f"Game restart failed: {restart_err!r}")
+            time.sleep(90)
 
 
-
-if __name__=="__main__":
+def main():
+    init_database()
+    if not ensure_game_running():
+        print("Game does not appear to be running - the bot will keep retrying.")
     selected_tasks = prompt_task_selection()
     run_bot(selected_tasks)
+
+
+if __name__ == "__main__":
+    main()

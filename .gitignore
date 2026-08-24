@@ -6,7 +6,12 @@ __pycache__/
 *.log
 cache/
 frames/
+logs/
 test/debug/
 .python-version
 uv.lock
 account.json
+db/account.json
+db/players/
+db/completion_log.txt
+.DS_Store

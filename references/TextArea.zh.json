@@ -1,0 +1,10 @@
+{
+  "_comment": "中文版 TextArea 覆盖层（WOS_LANG=zh 时生效）。box 默认沿用英文版百分比坐标；text 需按真机截图核对修正。",
+  "World.City": {"text": "城市"},
+  "Home.World": {"text": "世界"},
+  "World.Search.Gather": {"text": "采集"},
+  "World.Search.Search": {"text": "搜索"},
+  "World.Deploy.Deploy": {"text": "出征"},
+  "World.Deploy.Equalize": {"text": "兵力均衡"},
+  "World.Recall.Confirm": {"text": "确认"}
+}

@@ -177,6 +177,9 @@ def prompt_task_selection():
 
 
 def run_selected_tasks(current_player_id, selected_tasks):
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+    from core import config
+
     for task in selected_tasks:
         console.print(
             Panel.fit(
@@ -184,4 +187,20 @@ def run_selected_tasks(current_player_id, selected_tasks):
                 border_style="bright_blue",
             )
         )
-        task.runner(current_player_id)
+        # Each task runs isolated: an exception or timeout skips the task
+        # instead of killing the whole bot. (The worker thread itself cannot
+        # be force-stopped — a timed-out task may finish in the background.)
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(task.runner, current_player_id)
+                future.result(timeout=config.TASK_TIMEOUT_SEC)
+        except FutureTimeout:
+            console.print(
+                f"[bold red]⏱ Task '{task.title}' timed out after "
+                f"{config.TASK_TIMEOUT_SEC:.0f}s — skipping it.[/bold red]"
+            )
+        except Exception as exc:
+            console.print(
+                f"[bold red]❌ Task '{task.title}' failed: {exc!r} — "
+                f"continuing with the next task.[/bold red]"
+            )

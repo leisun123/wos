@@ -1,44 +1,56 @@
 """
 Coordinate conversion utilities for percentage-based screen coordinates.
-Base resolution: 1080x2460 (100% = 1080 width, 100% = 2460 height)
-"""
 
-# Base resolution used for percentage calculations
-BASE_WIDTH = 1080
-BASE_HEIGHT = 2460
+Percentages are relative to the LIVE device resolution (auto-detected via
+`adb shell wm size`, see cmd_program.screen_action.get_screen_size). When no
+device is attached the 1080x2460 fallback is used so imports/tests work.
+"""
+from cmd_program.screen_action import get_screen_size
+from core import config
+
+BASE_WIDTH = config.FALLBACK_WIDTH
+BASE_HEIGHT = config.FALLBACK_HEIGHT
+
+
+def _live_size(screen_width=None, screen_height=None):
+    if screen_width and screen_height:
+        return screen_width, screen_height
+    try:
+        return get_screen_size()
+    except Exception:
+        return BASE_WIDTH, BASE_HEIGHT
 
 
 def pixel_to_percent(x: float, y: float) -> tuple[float, float]:
-    """Convert pixel coordinates to percentage coordinates."""
-    x_percent = (x / BASE_WIDTH) * 100
-    y_percent = (y / BASE_HEIGHT) * 100
-    return x_percent, y_percent
+    """Convert pixel coordinates (live resolution) to percentage coordinates."""
+    w, h = _live_size()
+    return (x / w) * 100, (y / h) * 100
 
 
-def percent_to_pixel(x_percent: float, y_percent: float, 
-                     screen_width: int = BASE_WIDTH, 
-                     screen_height: int = BASE_HEIGHT) -> tuple[int, int]:
-    """Convert percentage coordinates to pixel coordinates."""
-    x_pixel = int((x_percent / 100) * screen_width)
-    y_pixel = int((y_percent / 100) * screen_height)
-    return x_pixel, y_pixel
+def percent_to_pixel(x_percent: float, y_percent: float,
+                     screen_width: int = None,
+                     screen_height: int = None) -> tuple[int, int]:
+    """Convert percentage coordinates to pixels using the live resolution."""
+    w, h = _live_size(screen_width, screen_height)
+    return int((x_percent / 100) * w), int((y_percent / 100) * h)
 
 
 def box_pixel_to_percent(box: list[int]) -> list[float]:
-    """Convert box [x1, y1, x2, y2] from pixels to percentages."""
+    """Convert box [x1, y1, x2, y2] from pixels (live resolution) to percentages."""
     x1, y1, x2, y2 = box
     x1_p, y1_p = pixel_to_percent(x1, y1)
     x2_p, y2_p = pixel_to_percent(x2, y2)
     return [x1_p, y1_p, x2_p, y2_p]
 
 
-def box_percent_to_pixel(box: list[float], 
-                         screen_width: int = BASE_WIDTH,
-                         screen_height: int = BASE_HEIGHT) -> list[int]:
-    """Convert box [x1%, y1%, x2%, y2%] from percentages to pixels."""
+def box_percent_to_pixel(box: list[float],
+                         screen_width: int = None,
+                         screen_height: int = None) -> list[int]:
+    """Convert box [x1%, y1%, x2%, y2%] from percentages to pixels (live resolution)."""
     x1_p, y1_p, x2_p, y2_p = box
-    x1, y1 = percent_to_pixel(x1_p, y1_p, screen_width, screen_height)
-    x2, y2 = percent_to_pixel(x2_p, y2_p, screen_width, screen_height)
+    w, h = _live_size(screen_width, screen_height)
+    x1, y1 = percent_to_pixel(x1_p, y1_p, w, h)
+    x2, y2 = percent_to_pixel(x2_p, y2_p, w, h)
     return [x1, y1, x2, y2]
 
 

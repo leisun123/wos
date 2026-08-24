@@ -41,7 +41,7 @@ def buy_vip_time(day=30):
     except Exception as e:
         print(f"Error while reading page title - {e}, Continuing...")
     
-    if title.lower != "vip":
+    if not isinstance(title, str) or title.lower() != "vip":
         recalibrate()
         tap_on_text("Home.VIPLevel", wait=2)
 

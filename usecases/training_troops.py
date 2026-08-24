@@ -163,12 +163,12 @@ def train_marksman(Amount=None):
 
     tap_on_text("Marksman", rois=[side_panel], wait=2)
     for i in range(3):
-        tap_screen(540, 1200)
+        tap_screen(50, 48.78)
         time.sleep(0.3)
     tap_on_text("Train", rois = [training_menu], wait=2)
 
-    tap_screen(550, 1100)            #Taping at the middle of the screen to remove the tutorial hand icon
-    traned = 0
+    tap_screen(50.93, 44.72)            #Taping at the middle of the screen to remove the tutorial hand icon
+    trained = 0
 
     while(trained < Amount):
         time.sleep(0.5)

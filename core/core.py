@@ -12,6 +12,7 @@ from rapidfuzz import fuzz
 from cmd_program.screen_action import tap_screen, take_screenshot, long_press
 from concurrent.futures import ThreadPoolExecutor
 from core.coord_utils import box_percent_to_pixel
+from core import config, i18n
 
 
 
@@ -30,15 +31,23 @@ OCR_REPLAY_BACKOFF_MAX_SEC = float(os.getenv("OCR_REPLAY_BACKOFF_MAX_SEC", "2.5"
 #------------------- DataBase --------------------------#
 text_area = {}
 template_area = {}
+_db_loaded = False
+
+
+def _ensure_database():
+    global _db_loaded
+    if not _db_loaded:
+        init_database()
+        _db_loaded = True
 
 
 def init_database():
     global text_area, template_area
 
-    with open("references/icon/template_config.json") as f:
+    with open(config.REFERENCES_DIR / "icon" / "template_config.json") as f:
         template_area = json.load(f)
 
-    files = [f for f in Path("references/TextArea").rglob("*.json") if f.is_file()]
+    files = [f for f in config.TEXT_AREA_DIR.rglob("*.json") if f.is_file()]
 
     for file in files:
         try:
@@ -131,6 +140,7 @@ def _post_json_with_replay(url, payload, request_name, wait_sec=OCR_REPLAY_WAIT_
 
 
 def req_ocr(img_path=None, save_result=None, rois=None, name=None, expected_text = None):
+    _ensure_database()
     # Convert percentage-based ROIs to pixels
     rois = _convert_rois_percent_to_pixel(rois)
     
@@ -154,6 +164,7 @@ def req_ocr(img_path=None, save_result=None, rois=None, name=None, expected_text
 
 
 def req_temp_match(name, threshold=0.8, save_result=None, rois=None, parallel=None, session_id=None):
+    _ensure_database()
     # Convert percentage-based ROIs to pixels
     rois = _convert_rois_percent_to_pixel(rois)
     
@@ -186,16 +197,16 @@ def req_cache_clear(session_id):
 
 
 def tap_on_template(
-    name, 
-    threshold=None, 
-    save_result=None, 
-    wait=None, 
-    sleep=0.3, 
-    tap=True, 
-    rois=None, 
+    name,
+    threshold=None,
+    save_result=None,
+    wait=None,
+    sleep=0.3,
+    tap=True,
+    rois=None,
     hold=None
     ):
-    
+    _ensure_database()
     passed_threshold = threshold
     if name in template_area:
         if threshold == None:
@@ -282,6 +293,7 @@ def tap_on_text(
     ):
 
     name = text
+    _ensure_database()
 
     if align == None or not isinstance(align, list) or len(align) != 2:
         align = [0, 0]
@@ -311,8 +323,10 @@ def tap_on_text(
         for t in text:
             if t in text_area:
                 item = text_area[t].copy()
+                # localize the expected OCR text (no-op for en)
+                item["text"] = i18n.text_area_text(t, item.get("text") or t)
             else:
-                item = {"text": t, "score": None, "box": None}
+                item = {"text": i18n.t(t), "score": None, "box": None}
 
             if rois is not None:
                 item["box"] = rois
@@ -493,6 +507,7 @@ def tap_on_text(
 
 
 def req_text(names=None, img_path=None, rois=None, save_result=False, coord=None):
+    _ensure_database()
 
     # If no name is provided, send full page OCR
     if not names:
@@ -562,6 +577,7 @@ def tap_on_templates_batch(
     if n == 0:
         return False
 
+    _ensure_database()
     passed_threshold = thresholds
 
     thresholds = thresholds or [0.8] * n
@@ -747,8 +763,3 @@ def tap_on_closest_text(
         time.sleep(1)
 
     return False
-
-
-
-
-init_database()

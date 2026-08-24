@@ -33,9 +33,10 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.console import Console
 from concurrent.futures import ThreadPoolExecutor
-from cmd_program.screen_action import take_screenshot
+from cmd_program.screen_action import take_screenshot, get_screen_size
 from cmd_program.screen_stream import screen_capture as stream_screen_capture
 from cmd_program.screen_stream import start_screen_stream, setup_v4l2loopback
+from core import config
 import paddleocr
 
 
@@ -128,15 +129,15 @@ def take_preferred_screen_capture_tool():
         border_style="bright_blue"
     ))
     
-    choice = Prompt.ask("[bold yellow]Enter your choice[/bold yellow]")
-    
+    choice = Prompt.ask("[bold yellow]Enter your choice[/bold yellow]", default="1")
+
     try:
         choice = int(choice) - 1
         _preferred_screen_capture_tool = tools[choice]
         console.print(f"\n[bold green]✅ Selected:[/bold green] [bold white]{_preferred_screen_capture_tool.upper()}[/bold white]\n")
     except Exception as e:
-        console.print(f"[bold red]❌ Invalid choice — {e}, Try Again[/bold red]")
-        take_preferred_screen_capture_tool()
+        console.print(f"[bold red]❌ Invalid choice — {e}, defaulting to ADB[/bold red]")
+        _preferred_screen_capture_tool = "adb"
 
 
 
@@ -150,14 +151,25 @@ def _save_frame_to_cache(frame):
 
 
 def _normalize_frame_resolution(frame):
+    """Resize captured frames to the live device resolution.
+
+    Frames always come back in native device pixels, so percentage ROIs
+    converted on the client side (against `wm size`) line up exactly with
+    the boxes we return — no magic offsets.
+    """
     if frame is None:
         return None
 
-    h, w = frame.shape[:2]
-    if w == STREAM_WIDTH and h == STREAM_HEIGHT:
+    try:
+        target_w, target_h = get_screen_size()
+    except Exception:
         return frame
 
-    return cv2.resize(frame, (STREAM_WIDTH, STREAM_HEIGHT), interpolation=cv2.INTER_LINEAR)
+    h, w = frame.shape[:2]
+    if w == target_w and h == target_h:
+        return frame
+
+    return cv2.resize(frame, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
 
 
 def _try_start_stream():
@@ -276,7 +288,7 @@ def _build_ocr_engine():
     paddle.set_device("cpu")
     return PaddleOCR(
         use_angle_cls=False,
-        lang='en',
+        lang=config.OCR_LANG,
         use_gpu=False,
         det_limit_side_len=1024,
         cpu_threads=CPU_THREADS,
@@ -675,9 +687,6 @@ def run_ocr(
                 continue
 
             x1, y1, x2, y2 = roi
-            #a slight adjustment so that it could take scrcpy image to with a res of 1080x2456
-            y1 = y1 - 5
-            y2 = y2
             # Only pad if the crop actually has dimensions
             raw_crop = img[y1:y2, x1:x2]
             if raw_crop.size == 0:
@@ -845,10 +854,13 @@ def _clear_session_cache(req:ClearCacheRequest):
         _cache.pop(req.session_id, None)
 
 
-take_preferred_screen_capture_tool()
-init_services()
-
 if __name__ == "__main__":
+    # Defaults to ADB capture when run non-interactively (WOS_CAPTURE_TOOL=adb)
+    if not os.getenv("OCR_CAPTURE_TOOL"):
+        os.environ["OCR_CAPTURE_TOOL"] = os.getenv("WOS_CAPTURE_TOOL", "adb")
+    print(f"OCR language: {config.OCR_LANG} (set WOS_OCR_LANG / WOS_LANG to change)")
+    take_preferred_screen_capture_tool()
+    init_services()
     uvicorn.run(
         app,
         host="127.0.0.1",
