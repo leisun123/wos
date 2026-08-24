@@ -18,9 +18,9 @@ from core import config, i18n
 
 
 
-ocr_url = "http://127.0.0.1:8000/ocr"
-template_matching_url = "http://127.0.0.1:8000/template"
-cache_clearing_url = "http://127.0.0.1:8000/clear_cache"
+ocr_url = f"http://127.0.0.1:{config.OCR_PORT}/ocr"
+template_matching_url = f"http://127.0.0.1:{config.OCR_PORT}/template"
+cache_clearing_url = f"http://127.0.0.1:{config.OCR_PORT}/clear_cache"
 
 OCR_HTTP_TIMEOUT_SEC = float(os.getenv("OCR_HTTP_TIMEOUT_SEC", "8"))
 OCR_REPLAY_WAIT_SEC = float(os.getenv("OCR_REPLAY_WAIT_SEC", "35"))
@@ -103,6 +103,12 @@ def _convert_rois_percent_to_pixel(rois):
     return rois
 
 
+# The OCR service is always on localhost — never let system proxies
+# (http_proxy / all_proxy / SOCKS, e.g. Clash) intercept these requests.
+_http = requests.Session()
+_http.trust_env = False
+
+
 def _post_json_with_replay(url, payload, request_name, wait_sec=OCR_REPLAY_WAIT_SEC):
     """Replay the same request payload until OCR service recovers or timeout is hit."""
     start = time.time()
@@ -112,7 +118,7 @@ def _post_json_with_replay(url, payload, request_name, wait_sec=OCR_REPLAY_WAIT_
     while True:
         attempt += 1
         try:
-            response = requests.post(url, json=payload, timeout=OCR_HTTP_TIMEOUT_SEC)
+            response = _http.post(url, json=payload, timeout=OCR_HTTP_TIMEOUT_SEC)
             response.raise_for_status()
             data = response.json()
 
@@ -191,7 +197,7 @@ def req_cache_clear(session_id):
         "session_id" : session_id
     }
     try:
-        requests.post(cache_clearing_url, json=payload, timeout=OCR_HTTP_TIMEOUT_SEC)
+        _http.post(cache_clearing_url, json=payload, timeout=OCR_HTTP_TIMEOUT_SEC)
     except requests.RequestException as e:
         print(f"Cache clear skipped (OCR unavailable): {e}")
 

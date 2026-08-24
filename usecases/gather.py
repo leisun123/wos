@@ -20,8 +20,9 @@ from cmd_program.screen_action import(
 def _read_march_queue():
     """Read the world march queue counter (e.g. "2/5").
 
-    Returns (occupied, remaining) or None when OCR fails — callers must
-    treat None as "unknown" and act conservatively, never guess.
+    Newer game builds replaced the counter with per-slot indicators, so this
+    returns None when the counter is absent — callers then fall back to
+    dispatch-until-fail flow instead of guessing.
     """
     time.sleep(0.5)
     try:
@@ -30,7 +31,7 @@ def _read_march_queue():
         total = int(data[1])
         return occupied, total - occupied
     except Exception as e:
-        print(f"March queue read failed - {e}")
+        print(f"March queue counter not available - {e}")
         return None
 
 
@@ -124,23 +125,23 @@ def gather(remove_hero=False, equalize=True, lowest_time=14400,
     wait_till_return(lowest_time=lowest_time)
 
     queue = _read_march_queue()
-    if queue is None:
-        # Do NOT guess a queue count — a misread here sends taps into an
-        # unknown UI state. Bail out safely instead.
-        print("Cannot read the march queue, aborting the gathering task.")
-        recalibrate()
-        return
-    occupied_march, remaining_march = queue
+    unknown_queue = queue is None
+    if unknown_queue:
+        # New UI without an "x/5" counter: rely on dispatch outcomes instead.
+        print("March queue counter not available, using dispatch-until-fail flow.")
+        occupied_march, remaining_march = 0, 99
+    else:
+        occupied_march, remaining_march = queue
     i = 0
+    fail_streak = 0
 
     while remaining_march > 0 and occupied_march < 5:
         title = tap_on_text("World.City", tap=False)
         if not title:
             tap_screen(50.93, 50.41)
             time.sleep(0.5)
-        print(f"Remaining march queue: {remaining_march} ----- Occupied March: {occupied_march}")
-        if occupied_march == 5:
-            break
+        if not unknown_queue:
+            print(f"Remaining march queue: {remaining_march} ----- Occupied March: {occupied_march}")
         status = tap_on_template("World.Search", wait=2, threshold=0.6)
         if not status:
             print("Seach Icon not found, Exiting the task...")
@@ -158,24 +159,33 @@ def gather(remove_hero=False, equalize=True, lowest_time=14400,
             time.sleep(0.5)
 
         if not gathered:
-            print(f"No gatherable {gathering_nodes[i]} down to level {min_level}, next resource...")
+            fail_streak += 1
+            print(f"No gatherable {gathering_nodes[i]} down to level {min_level} (fail streak {fail_streak})")
+            if fail_streak >= len(gathering_nodes):
+                print("No gatherable nodes for any resource, ending the gathering task.")
+                break
             i = (i + 1) % 5
             continue
+        fail_streak = 0
 
         if remove_hero:
             tap_on_template("World.Deploy.RemoveHero", threshold=0.6, rois=[[27.78, 20.33, 37.04, 26.42]], wait=2)  # removing hero
         if equalize:
             tap_on_text("World.Deploy.Equalize", wait=2)
-        tap_on_text("World.Deploy.Deploy", wait=2, sleep=0.5)
+        deployed = tap_on_text("World.Deploy.Deploy", wait=2, sleep=0.5)
+        if not deployed:
+            # Deploy button missing usually means no free march queue left.
+            print("Deploy button not found — treating as no free march queue, ending task.")
+            break
 
         i = (i + 1) % 5
 
-        # verify the deploy actually consumed a queue slot; abort on misread
-        queue = _read_march_queue()
-        if queue is None:
-            print("Cannot re-read the march queue after deploy, aborting the gathering task.")
-            break
-        occupied_march, remaining_march = queue
+        if not unknown_queue:
+            queue = _read_march_queue()
+            if queue is None:
+                print("Lost the march queue counter after deploy, ending task.")
+                break
+            occupied_march, remaining_march = queue
 
     time.sleep(0.5)
     text = req_text("World.City")
@@ -210,8 +220,13 @@ def recall_current_gathering(lowest_time=14400):
         march_time = march_time[0]*3600 + march_time[1]*60 + march_time[2]
     except Exception as e:
         print(f"Couldn't read the time properly - {e}")
+        march_time = None
 
-    if not isinstance(march_time, int) or march_time < lowest_time:
+    if march_time is None:
+        # No readable march timer means no march is out — nothing to recall.
+        return False
+
+    if march_time < lowest_time:
         found = True
         recalling = True
         while found:

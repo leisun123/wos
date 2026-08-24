@@ -25,7 +25,16 @@ GAME_COMPONENT = os.getenv(
 # UI language of the game client: "en" or "zh".
 # Selects OCR model language and the TextArea text overlay.
 LANG = os.getenv("WOS_LANG", "en").strip().lower()
-OCR_LANG = os.getenv("WOS_OCR_LANG", LANG if LANG in ("en", "zh") else "en").strip().lower()
+
+# PaddleOCR language codes differ from ours: Chinese is "ch", not "zh".
+_ocr_lang = os.getenv("WOS_OCR_LANG", "").strip().lower()
+if not _ocr_lang:
+    _ocr_lang = {"zh": "ch", "en": "en"}.get(LANG, "en")
+OCR_LANG = {"zh": "ch"}.get(_ocr_lang, _ocr_lang)
+
+# --- Services ---------------------------------------------------------
+# Port of the local OCR FastAPI service (core/ocr.py <-> core/core.py).
+OCR_PORT = int(os.getenv("WOS_OCR_PORT", "8000"))
 
 # --- Resolution -------------------------------------------------------
 # Forces a resolution ("WxH", e.g. "1080x2460"). If empty the real device

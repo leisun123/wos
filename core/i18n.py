@@ -21,8 +21,8 @@ from core import config
 # English literal -> Chinese (verify on a real CN-client screenshot)
 LITERAL_ZH = {
     # world / page titles
-    "city": "城市",
-    "world": "世界",
+    "city": "城镇",
+    "world": "野外",
     # resource names (world search panel)
     "meat": "肉",
     "wood": "木",

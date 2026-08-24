@@ -1,5 +1,9 @@
 import os
 import sys
+
+# allow `python bot/main.py` from anywhere (script mode doesn't add cwd)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import cv2
 import time
 import json

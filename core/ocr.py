@@ -1,7 +1,10 @@
 import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Running this file as a script (python core/ocr.py) puts core/ itself first
+# on sys.path, where the file core/core.py would shadow the `core` package.
+# The project root must take precedence.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Disable remote model source probing during PaddleOCR init to avoid startup delays.
 os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
@@ -416,14 +419,18 @@ def clamp_roi(roi, width, height):
 
 
 def match_template(
-        name, 
-        img = None, 
-        threshold=0.8, 
-        save_result=None, 
-        rois=None, 
-        parallel=None, 
+        name,
+        img = None,
+        threshold=0.8,
+        save_result=None,
+        rois=None,
+        parallel=None,
         session_id=None
     ):
+    # FastAPI model passes None when the field is omitted
+    if threshold is None:
+        threshold = 0.8
+
     if name not in _template_cache:
         template = cv2.imread(name)
     else:
@@ -864,5 +871,5 @@ if __name__ == "__main__":
     uvicorn.run(
         app,
         host="127.0.0.1",
-        port=8000
+        port=config.OCR_PORT
     )
