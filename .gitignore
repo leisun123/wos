@@ -9,7 +9,6 @@ frames/
 logs/
 test/debug/
 .python-version
-uv.lock
 account.json
 db/account.json
 db/players/

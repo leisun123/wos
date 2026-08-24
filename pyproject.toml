@@ -21,3 +21,8 @@ dependencies = [
 dev = [
     "pytest>=8.0"
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: heavy screenshot-replay OCR tests (run by the Nightly workflow)",
+]

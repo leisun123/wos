@@ -1,5 +1,7 @@
 # ❄️ WOS Bot（无尽冬日 / Whiteout Survival 自动化）
 
+[![CI](https://github.com/leisun123/wos/actions/workflows/ci.yml/badge.svg)](https://github.com/leisun123/wos/actions/workflows/ci.yml)
+
 Fork 自 [AminulIslamSifat/wos](https://github.com/AminulIslamSifat/wos)，MIT 协议。
 
 Python + PaddleOCR（本地 FastAPI 服务）+ OpenCV 模板匹配 + ADB 实现《无尽冬日》日常自动化。
@@ -65,8 +67,18 @@ uv run Main/main.py
 ### 6. 测试（无需设备）
 
 ```bash
-uv run pytest tests/
+uv run pytest tests/               # 全部
+uv run pytest -m "not slow" -q     # 只跑轻量测试（CI 每次跑的也是这个）
 ```
+
+**云上测试（GitHub Actions，public 仓库免费）**：
+
+- `CI` workflow：push / PR / 手动触发，跑语法检查 + 离线单测（约 1-2 分钟）
+- `Nightly` workflow：每天北京时间 03:30（或手动触发），额外跑**截图回放测试**——
+  把真机截图放进 `tests/fixtures/screenshots/`，配好 `tests/fixtures/expectations.json`
+  （格式见 `tests/test_screenshot_replay.py` 顶部注释），即可在云端验证
+  「这张图 OCR 能否认出『城市』/『采集』」，改 i18n 映射不用插手机。
+  没放截图时该测试零成本跳过。
 
 ---
 

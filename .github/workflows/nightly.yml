@@ -1,0 +1,25 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "30 19 * * *"  # 03:30 Beijing time
+  workflow_dispatch:
+
+jobs:
+  replay:
+    # Full run including screenshot-replay OCR tests (tests/test_screenshot_replay.py).
+    # Stays fast until tests/fixtures/screenshots/ + expectations.json are added.
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv python install 3.12
+      - run: uv sync --dev
+
+      - name: All tests (incl. slow screenshot replay)
+        run: uv run pytest -q

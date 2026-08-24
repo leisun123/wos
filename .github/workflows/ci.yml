@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  light:
+    # Fast checks: syntax, offline unit tests (no device / no OCR model).
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv python install 3.12
+      - run: uv sync --dev
+
+      - name: Syntax check
+        run: uv run python -m compileall -q Main core cmd_program usecases tests
+
+      - name: Offline tests
+        run: uv run pytest -m "not slow" -q
