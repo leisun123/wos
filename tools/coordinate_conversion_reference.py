@@ -61,7 +61,7 @@ COORDS_TO_CONVERT = {
     
     # usecases/alliance.py
     
-    # Main/main.py
+    # bot/main.py
 }
 
 # Box conversion table (x1, y1, x2, y2)

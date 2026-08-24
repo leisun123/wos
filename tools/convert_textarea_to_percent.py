@@ -7,9 +7,12 @@ Base resolution: 1080x2460
 import json
 import os
 from pathlib import Path
+import sys
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
+
 from core.coord_utils import box_pixel_to_percent, round_percentages
 
-TEXTAREA_DIR = Path(__file__).parent / "references" / "TextArea"
+TEXTAREA_DIR = Path(__file__).parent.parent / "references" / "text_area"
 BASE_WIDTH = 1080
 BASE_HEIGHT = 2460
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Quick test to verify coordinate conversions work correctly."""
 
+import sys
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
+
 from core.coord_utils import pixel_to_percent, percent_to_pixel, box_pixel_to_percent, box_percent_to_pixel
 
 print("Testing coordinate conversions:")

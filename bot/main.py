@@ -78,7 +78,7 @@ from usecases.labyrinth import labyrinth
 from core.recalibrate import recalibrate
 from core.change_player import change_account, change_character
 
-from Main.task_menu import prompt_task_selection, run_selected_tasks
+from bot.task_menu import prompt_task_selection, run_selected_tasks
 
 
 

@@ -1,17 +1,17 @@
 """Lightweight i18n for hardcoded UI strings.
 
 The game UI text the bot looks for comes from three places:
-  1. references/TextArea/*.json  — key -> {"text": <english sample>, "box": ...}
+  1. references/text_area/*.json  — key -> {"text": <english sample>, "box": ...}
   2. literal strings passed to tap_on_text() in usecases (e.g. "meat")
   3. inline comparisons in code (e.g. `title != "city"`)
 
 For WOS_LANG=zh:
-  - key-based texts are overridden by references/TextArea.zh.json
+  - key-based texts are overridden by references/text_area.zh.json
   - literals are mapped through LITERAL_ZH below
 
 The Chinese values are best-effort and MUST be verified against real
 screenshots of the CN client (真机截图确认) — adjust them in
-TextArea.zh.json / LITERAL_ZH as needed. Matching is fuzzy (rapidfuzz),
+text_area.zh.json / LITERAL_ZH as needed. Matching is fuzzy (rapidfuzz),
 so close-but-not-exact values usually still work.
 """
 import json

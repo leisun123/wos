@@ -22,7 +22,7 @@ jobs:
       - run: uv sync --dev
 
       - name: Syntax check
-        run: uv run python -m compileall -q Main core cmd_program usecases tests
+        run: uv run python -m compileall -q bot core cmd_program usecases tests
 
       - name: Offline tests
         run: uv run pytest -m "not slow" -q

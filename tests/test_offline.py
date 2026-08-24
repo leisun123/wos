@@ -56,8 +56,8 @@ def test_i18n_zh_literals(monkeypatch):
 
 def test_import_all_modules():
     """The whole package must import without a connected device."""
-    import Main.task_menu  # noqa: F401
-    import Main.main  # noqa: F401
+    import bot.task_menu  # noqa: F401
+    import bot.main  # noqa: F401
     import core.core  # noqa: F401
     import core.recalibrate  # noqa: F401
     import usecases.gather  # noqa: F401

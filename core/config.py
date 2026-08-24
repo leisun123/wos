@@ -37,7 +37,7 @@ FALLBACK_WIDTH = 1080
 FALLBACK_HEIGHT = 2460
 
 # --- Behaviour --------------------------------------------------------
-# Per-task timeout in seconds (task isolation in Main/task_menu.py).
+# Per-task timeout in seconds (task isolation in bot/task_menu.py).
 TASK_TIMEOUT_SEC = float(os.getenv("WOS_TASK_TIMEOUT", "1800"))
 
 # Number of consecutive unknown-screen taps recalibrate() allows before it
@@ -49,6 +49,6 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 CACHE_DIR = PROJECT_ROOT / "cache"
 DB_DIR = PROJECT_ROOT / "db"
 REFERENCES_DIR = PROJECT_ROOT / "references"
-TEXT_AREA_DIR = REFERENCES_DIR / "TextArea"
+TEXT_AREA_DIR = REFERENCES_DIR / "text_area"
 # Optional per-language overlay: {"TextArea.Key": {"text": "<localized text>"}}
-TEXT_AREA_OVERLAY_FILE = REFERENCES_DIR / f"TextArea.{LANG}.json"
+TEXT_AREA_OVERLAY_FILE = REFERENCES_DIR / f"text_area.{LANG}.json"

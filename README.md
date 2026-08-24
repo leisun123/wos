@@ -59,7 +59,7 @@ cp db/account.json.example db/account.json
 uv run core/ocr.py
 
 # 终端 2：主程序（交互式任务菜单）
-uv run Main/main.py
+uv run bot/main.py
 ```
 
 菜单里回车跑全部默认任务，或输入 `18`（World Gather）只跑采集。
@@ -87,7 +87,7 @@ uv run pytest -m "not slow" -q     # 只跑轻量测试（CI 每次跑的也是�
 已搭好框架，但需要真机采样后才能跑稳：
 
 1. `WOS_LANG=zh` 启用（OCR 自动切中文模型，界面词自动走中文映射）。
-2. `references/TextArea.zh.json`：中文文本覆盖层——**text 值需按真机截图核对**，box 坐标沿用英文版百分比。
+2. `references/text_area.zh.json`：中文文本覆盖层——**text 值需按真机截图核对**，box 坐标沿用英文版百分比。
 3. `core/i18n.py` 的 `LITERAL_ZH`：字面量映射（采集/搜索/出征/肉木煤铁…），同样需真机核对。
 4. 国服包名：设置 `WOS_PACKAGE`（`adb shell pm list packages | grep -i wos` 等确认）。
 5. 含英文文字的模板图（`references/icon/`）如匹配不到，需在中文版截图替换。
@@ -105,7 +105,7 @@ uv run pytest -m "not slow" -q     # 只跑轻量测试（CI 每次跑的也是�
 ## 四、项目结构
 
 ```
-Main/            入口 + 任务菜单（任务级容错/超时）
+bot/            入口 + 任务菜单（任务级容错/超时）
 core/ocr.py      FastAPI OCR/模板服务（语言可配 WOS_OCR_LANG）
 core/core.py     视觉客户端（OCR/模板 HTTP 调用 + 点击）
 core/config.py   集中配置（环境变量）
@@ -113,7 +113,7 @@ core/i18n.py     中英文本映射
 core/recalibrate.py 页面恢复（截图存证 + 盲点上限）
 cmd_program/     ADB 点击/滑动/截图/游戏启动
 usecases/        gather / alliance / mail / training 等 17 个任务
-references/      TextArea JSON（百分比 ROI）+ icon 模板 + TextArea.zh.json
+references/      text_area JSON（百分比 ROI）+ icon 模板 + text_area.zh.json
 tests/           离线单元测试（无需设备）
 ```
 
