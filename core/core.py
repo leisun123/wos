@@ -331,6 +331,7 @@ def tap_on_text(
                 item = text_area[t].copy()
                 # localize the expected OCR text (no-op for en)
                 item["text"] = i18n.text_area_text(t, item.get("text") or t)
+                item["box"] = i18n.text_area_box(t, item.get("box"))
             else:
                 item = {"text": i18n.t(t), "score": None, "box": None}
 
@@ -536,7 +537,7 @@ def req_text(names=None, img_path=None, rois=None, save_result=False, coord=None
         for name in names:
             if name in text_area:
                 title += name + ", "
-                box = text_area[name]["box"]
+                box = i18n.text_area_box(name, text_area[name]["box"])
             else:
                 box = [0, 0, 100, 100]  # Full screen in percentage (100% width, 100% height)
 

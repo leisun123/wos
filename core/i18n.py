@@ -84,3 +84,16 @@ def text_area_text(key, default_text):
         # have a chance when the overlay has not been filled in yet
         return t(default_text)
     return default_text
+
+
+def text_area_box(key, default_box):
+    """Localized/adjusted `box` value for a TextArea key (overlay wins).
+
+    CN builds sometimes move a widget compared to the EN recording — the
+    overlay can carry {"box": [...]} in percentages to reposition it.
+    """
+    overlay = _load_overlay()
+    entry = overlay.get(key)
+    if isinstance(entry, dict) and entry.get("box"):
+        return entry["box"]
+    return default_box

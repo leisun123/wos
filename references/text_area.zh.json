@@ -16,9 +16,17 @@
     "text": "出征"
   },
   "World.Deploy.Equalize": {
-    "text": "兵力均衡"
+    "text": "平均配置"
   },
   "World.Recall.Confirm": {
     "text": "确认"
+  },
+  "World.MarchQueue": {
+    "box": [
+      5.0,
+      12.2,
+      33.5,
+      14.5
+    ]
   }
 }
